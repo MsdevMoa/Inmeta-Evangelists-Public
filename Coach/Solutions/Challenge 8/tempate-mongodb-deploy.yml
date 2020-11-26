@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    name: mongodb
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 27017
+    targetPort: 27017
+  selector:
+    name: mongo-db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  mongo-db-deploy
+  labels:
+    name:  mongo-db
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      name: mongo-db
+  template:
+    metadata:
+      labels:
+        name:  mongo-db
+    spec:
+      containers:
+      - image:  mongo
+        name:  mongo-db-cntnr
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "55M"
+        ports:
+        - containerPort:  27017
+          name:  mongo-db
+        volumeMounts:
+        - mountPath: /data/db
+          name: azuredisk-db
+        - mountPath: /data/configdb
+          name: azuredisk-configdb
+        imagePullPolicy: Always
+      volumes:
+        - name: azuredisk-db
+          azureDisk:
+            kind: Managed
+            diskName: myAKSDisk
+            diskURI: /subscriptions/86592948-26f1-48a2-b7fa-09b99e2aa63e/resourceGroups/MC_birkmoseaksmc_myAKSCluster_westeurope/providers/Microsoft.Compute/disks/myAKSDisk
+        - name: azuredisk-configdb
+          azureDisk:
+            kind: Managed
+            diskName: myAKSDiskConfig
+            diskURI:  /subscriptions/86592948-26f1-48a2-b7fa-09b99e2aa63e/resourceGroups/MC_birkmoseaksmc_myAKSCluster_westeurope/providers/Microsoft.Compute/disks/myAKSDiskConfig
+      restartPolicy: Always
